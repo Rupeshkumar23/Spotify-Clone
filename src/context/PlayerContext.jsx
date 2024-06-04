@@ -1,6 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useEffect, useState } from "react";
-import { createContext, useRef } from "react";
+import React, { useEffect, useState, createContext, useRef } from "react";
 import { songsData } from "../assets/assets";
 
 export const PlayerContext = createContext();
@@ -32,45 +31,70 @@ const PlayerContextProvider = (props) => {
     audioRef.current.pause();
     setPlayStatus(false);
   };
-  const playWithId = async (id)=>{
+
+  const playWithId = async (id) => {
     await setTrack(songsData[id]);
-    await audioRef.current.play();
+    audioRef.current.load(); // Ensure the new track is loaded
+    audioRef.current.play();
     setPlayStatus(true);
-  }
-  const previous = async ()=>{
-    if(track.id>0){
-        await setTrack(songsData[track.id-1]);
-        await audioRef.current.play();
-        setPlayStatus(true);
+  };
+
+  const previous = async () => {
+    if (track.id > 0) {
+      await setTrack(songsData[track.id - 1]);
+      audioRef.current.load(); // Ensure the new track is loaded
+      audioRef.current.play();
+      setPlayStatus(true);
     }
-  }
-  const next = async ()=>{
-    if(track.id<songsData.length-1){
-        await setTrack(songsData[track.id+1]);
-        await audioRef.current.play();
-        setPlayStatus(true);
+  };
+
+  const next = async () => {
+    if (track.id < songsData.length - 1) {
+      await setTrack(songsData[track.id + 1]);
+      audioRef.current.load(); // Ensure the new track is loaded
+      audioRef.current.play();
+      setPlayStatus(true);
     }
-  }
-  const seekSong = async (e)=>{
-   audioRef.current.currentTime=((e.nativeEvent.offsetX / seekBg.current.offsetWidth)*audioRef.current.duration)
-  }
+  };
+
+  const seekSong = (e) => {
+    const seekPosition = (e.nativeEvent.offsetX / seekBg.current.offsetWidth) * audioRef.current.duration;
+    if (!isNaN(seekPosition)) {
+      audioRef.current.currentTime = seekPosition;
+    }
+  };
+
   useEffect(() => {
-    setTimeout(() => {
-      audioRef.current.ontimeupdate = () => {
-        seekBar.current.style.width=(Math.floor(audioRef.current.currentTime/audioRef.current.duration*100))+"%"
+    const audio = audioRef.current; // Copy the current value of audioRef to a variable
+
+    const updateTime = () => {
+      if (audio && !isNaN(audio.duration)) {
+        seekBar.current.style.width = (audio.currentTime / audio.duration) * 100 + "%";
         setTime({
           currentTime: {
-            second: Math.floor(audioRef.current.currentTime % 60),
-            minute: Math.floor(audioRef.current.currentTime / 60),
+            second: Math.floor(audio.currentTime % 60),
+            minute: Math.floor(audio.currentTime / 60),
           },
           totalTime: {
-            second: Math.floor(audioRef.current.duration % 60),
-            minute: Math.floor(audioRef.current.duration / 60),
+            second: Math.floor(audio.duration % 60),
+            minute: Math.floor(audio.duration / 60),
           },
         });
-      };
-    }, 1000);
-  }, [audioRef]);
+      }
+    };
+
+    if (audio) {
+      audio.ontimeupdate = updateTime;
+      audio.onloadedmetadata = updateTime; // Update time when metadata is loaded
+    }
+
+    return () => {
+      if (audio) {
+        audio.ontimeupdate = null;
+        audio.onloadedmetadata = null;
+      }
+    };
+  }, [audioRef, track]); // Add track to the dependency array to ensure updates when the track changes
 
   const contextValue = {
     audioRef,
@@ -87,8 +111,9 @@ const PlayerContextProvider = (props) => {
     playWithId,
     next,
     previous,
-    seekSong
+    seekSong,
   };
+
   return (
     <PlayerContext.Provider value={contextValue}>
       {props.children}
