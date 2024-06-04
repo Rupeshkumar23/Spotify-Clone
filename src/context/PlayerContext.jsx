@@ -58,7 +58,9 @@ const PlayerContextProvider = (props) => {
   };
 
   const seekSong = (e) => {
-    const seekPosition = (e.nativeEvent.offsetX / seekBg.current.offsetWidth) * audioRef.current.duration;
+    const seekPosition =
+      (e.nativeEvent.offsetX / seekBg.current.offsetWidth) *
+      audioRef.current.duration;
     if (!isNaN(seekPosition)) {
       audioRef.current.currentTime = seekPosition;
     }
@@ -69,7 +71,8 @@ const PlayerContextProvider = (props) => {
 
     const updateTime = () => {
       if (audio && !isNaN(audio.duration)) {
-        seekBar.current.style.width = (audio.currentTime / audio.duration) * 100 + "%";
+        seekBar.current.style.width =
+          (audio.currentTime / audio.duration) * 100 + "%";
         setTime({
           currentTime: {
             second: Math.floor(audio.currentTime % 60),
